@@ -1,0 +1,42 @@
+body {
+    font-family: Arial, sans-serif;
+}
+.btn-success {
+    /* background-color: #00AB33; */
+    border: none;
+}
+.btn-success:hover {
+    /* background-color: #008B28; */
+}
+footer {
+    background-color: #9ccbb5;
+    color: white;
+}
+.navbar{
+    background-color: #9ccbb5;
+}
+.container-fluid{
+    background-color: #9ccbb5;
+}
+
+
+/* SignUp */
+.signup-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+/* Login */
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+  }
