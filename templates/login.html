@@ -3,38 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Page</title>
+  <title>Login - InstaMed</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="../static/style.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand text-success" href="{{ url_for('index') }}">InstaMed</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link btn btn-outline-success me-2" href="{{ url_for('login') }}">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link btn btn-success" href="{{ url_for('signup') }}">Sign Up</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-<div class="login-container">
-  <h2 class="text-center text-success mb-4">Login</h2>
-  <form action="/login" method="POST">
-    <div class="mb-3">
+  <div class="login-container">
+    <h2 class="text-center text-success mb-4">Welcome Back</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-danger" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST" action="{{ url_for('login') }}">
+      <!-- Login Option -->
+      <div class="mb-3">
         <label for="loginInput" class="form-label">Phone Number or Email</label>
-        <input type="text" class="form-control" id="loginInput" name="loginInput" required>
-    </div>
-
-    <div class="mb-3">
+        <input type="text" class="form-control" id="loginInput" name="loginInput" placeholder="Enter phone number or email" required>
+      </div>
+      <!-- Password -->
+      <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-    </div>
-
-    <div class="form-check mb-3">
-        <input type="checkbox" class="form-check-input" id="rememberMe">
+        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+      </div>
+      <!-- Remember Me -->
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
         <label class="h6 small" for="rememberMe">Remember me</label>
-    </div>
+      </div>
+      <!-- Login Button -->
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-success">Login</button>
+      </div>
+      <!-- Switch to Signup -->
+      <div class="mt-3 text-center">
+        <p>Don't have an account? <a href="{{ url_for('signup') }}" class="text-success">Sign up here</a></p>
+      </div>
+    </form>
+  </div>
 
-    <div class="text-center">
-        <button type="submit" class="btn btn-success btn-block">Login</button>
-    </div>
-  </form>
-</div>
+  <footer class="text-center py-3">
+    <p class="text-dark">&copy; 2024 InstaMed | Designed for Your Health</p>
+  </footer>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

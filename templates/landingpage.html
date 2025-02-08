@@ -6,8 +6,8 @@
     <title>InstaMed</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
+    <!-- Custom CSS - Using url_for to correctly reference static files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light">
@@ -19,10 +19,10 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link btn btn-outline-success me-2" href="login.html">Login</a>
+                        <a class="nav-link btn btn-outline-success me-2" href="{{ url_for('login') }}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-success" href="./signup.html">Sign Up</a>
+                        <a class="nav-link btn btn-success" href="{{ url_for('signup') }}">Sign Up</a>
                     </li>
                 </ul>
             </div>
@@ -31,12 +31,12 @@
     <div class="container-fluid text-center py-5">
         <h1 class="display-4 text-success">InstaMed</h1>
         <p class="lead">Quickly identify potential illnesses and receive recommended medications during critical moments.</p>
-        <a href="login.html" class="btn btn-success btn-lg">Find the Right Medication</a>
+        <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Find the Right Medication</a>
     </div>
     <div class="container py-5">
         <div class="row">
             <div class="col-md-6 text-center">
-                <img src="assets/home.webp" alt="Health App Mockup" class="img-fluid rounded">
+                <img src="{{ url_for('static', filename='assets/home.webp') }}" alt="Health App Mockup" class="img-fluid rounded">
             </div>
             <div class="col-md-6 d-flex flex-column justify-content-center">
                 <h2 class="text-success">Stay Healthy, Stay Informed</h2>
@@ -46,7 +46,7 @@
                     <li>AI-powered medication guidance</li>
                     <li>User-friendly interface</li>
                 </ul>
-                <a href="#" class="btn btn-success">Learn More</a>
+                <a href="{{ url_for('signup') }}" class="btn btn-success">Learn More</a>
             </div>
         </div>
     </div>
@@ -54,8 +54,7 @@
         <p class="text-dark">&copy; 2024 InstaMed | Designed for Your Health</p>
     </footer>
     
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-        

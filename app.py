@@ -1,70 +1,111 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_migrate import Migrate
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from datetime import datetime
+from models import db, User
+from config import Config
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
-# Database Configuration
-import urllib.parse
-password = urllib.parse.quote("chinmay@123")
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://postgres:{password}@localhost/InstaMed'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_secret_key'
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-# Initialize extensions
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
-
-# User Model
-class User(db.Model, UserMixin):
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=True)
-    password = db.Column(db.String(150), nullable=False)
-
-# Flask-Login user loader
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-@app.route("/")
-def home():
-    return render_template("login.html")
+@app.route('/')
+def index():
+    return render_template('landingpage.html')
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        try:
+            # Get form data
+            full_name = request.form.get('name')
+            email = request.form.get('email')
+            phone = request.form.get('phone')
+            gender = request.form.get('gender')
+            dob_str = request.form.get('dob')
+            password = request.form.get('password')
+
+            # Validate required fields
+            if not all([full_name, email, phone, gender, dob_str, password]):
+                flash('All fields are required')
+                return redirect(url_for('signup'))
+
+            try:
+                dob = datetime.strptime(dob_str, '%Y-%m-%d')
+            except ValueError:
+                flash('Invalid date format')
+                return redirect(url_for('signup'))
+
+            # Check if user already exists
+            if User.query.filter_by(email=email).first():
+                flash('Email already exists')
+                return redirect(url_for('signup'))
+
+            if User.query.filter_by(phone=phone).first():
+                flash('Phone number already exists')
+                return redirect(url_for('signup'))
+
+            # Create new user
+            user = User(
+                full_name=full_name,
+                email=email,
+                phone=phone,
+                gender=gender,
+                dob=dob
+            )
+            user.set_password(password)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Registration successful! Please login.')
+            return redirect(url_for('login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred during registration')
+            print(f"Error: {str(e)}")  # For debugging
+            return redirect(url_for('signup'))
+        
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        login_input = request.form["loginInput"]
-        password = request.form["password"]
+    if request.method == 'POST':
+        login_input = request.form.get('loginInput')
+        password = request.form.get('password')
         
-        # Check if input is email or phone
-        user = User.query.filter((User.email == login_input) | (User.phone == login_input)).first()
+        # Check if login input is email or phone
+        user = User.query.filter((User.email == login_input) | 
+                               (User.phone == login_input)).first()
         
-        if user and bcrypt.check_password_hash(user.password, password):
+        if user and user.check_password(password):
             login_user(user)
-            flash("Login Successful!", "success")
-            return redirect(url_for("symptoms"))
-        else:
-            flash("Invalid credentials, please try again.", "danger")
+            return redirect(url_for('symptoms'))
+            
+        flash('Invalid credentials')
+        return redirect(url_for('login'))
+        
+    return render_template('login.html')
 
-    return render_template("login.html")
-
-@app.route("/symptoms")
+@app.route('/symptoms')
 @login_required
 def symptoms():
-    return render_template("symptoms.html", user=current_user)
+    return render_template('symptoms.html')
 
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    flash("You have been logged out.", "info")
-    return redirect(url_for("login"))
-
-if __name__ == "__main__":
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     with app.app_context():
+#         db.create_all()
+#     app.run(debug=True)
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, use_reloader=True, reloader_type='stat')
+    
