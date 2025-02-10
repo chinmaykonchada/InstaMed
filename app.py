@@ -3,6 +3,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from datetime import datetime
 from models import db, User
 from config import Config
+from flask import jsonify
+from ml_model import DiseasePredictor
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -11,6 +13,9 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# Initialize the predictor
+disease_predictor = DiseasePredictor()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -99,6 +104,23 @@ def login():
 @login_required
 def symptoms():
     return render_template('symptoms.html')
+
+@app.route('/predict', methods=['POST'])
+@login_required
+def predict():
+    if request.method == 'POST':
+        symptoms = request.form.get('symptoms', '').split(',')
+        if not symptoms or symptoms[0] == '':
+            return jsonify({'error': 'No symptoms provided'}), 400
+        
+        try:
+            result = disease_predictor.process_symptoms(symptoms)
+            return render_template(
+                'prediction.html',
+                result=result
+            )
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 # if __name__ == '__main__':
 #     with app.app_context():
