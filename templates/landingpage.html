@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InstaMed</title>
+    <title>InstaMed - Disease Detection & Drug Recommendations</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS - Using url_for to correctly reference static files -->
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -18,21 +18,40 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-outline-success me-2" href="{{ url_for('login') }}">Login</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle btn btn-outline-success me-2" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            Login
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('login') }}">Patient Login</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('doctor_login') }}">Doctor Login</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-success" href="{{ url_for('signup') }}">Sign Up</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle btn btn-success" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            Sign Up
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('signup') }}">Patient Sign Up</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('doctor_signup') }}">Doctor Sign Up</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
-    <div class="container-fluid text-center py-5">
+
+    <!-- Hero Section -->
+    <div class="container-fluid text-center py-5 bg-light">
         <h1 class="display-4 text-success">InstaMed</h1>
-        <p class="lead">Quickly identify potential illnesses and receive recommended medications during critical moments.</p>
-        <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Find the Right Medication</a>
+        <p class="lead">Advanced Disease Detection & Medication Recommendations</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('login') }}" class="btn btn-success btn-lg">Find Treatment</a>
+            <a href="{{ url_for('doctor_login') }}" class="btn btn-outline-success btn-lg">Doctor Portal</a>
+        </div>
     </div>
+
+    <!-- Features Section -->
     <div class="container py-5">
         <div class="row">
             <div class="col-md-6 text-center">
@@ -41,16 +60,75 @@
             <div class="col-md-6 d-flex flex-column justify-content-center">
                 <h2 class="text-success">Stay Healthy, Stay Informed</h2>
                 <p>Discover personalized medication recommendations and health monitoring at your fingertips.</p>
-                <ul>
-                    <li>Real-time symptom analysis</li>
-                    <li>AI-powered medication guidance</li>
-                    <li>User-friendly interface</li>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle-fill text-success"></i> Real-time symptom analysis</li>
+                    <li><i class="bi bi-check-circle-fill text-success"></i> AI-powered medication guidance</li>
+                    <li><i class="bi bi-check-circle-fill text-success"></i> User-friendly interface</li>
                 </ul>
-                <a href="{{ url_for('signup') }}" class="btn btn-success">Learn More</a>
             </div>
         </div>
     </div>
-    <footer class="text-center py-3">
+
+    <!-- For Doctors Section -->
+    <div class="container-fluid bg-light py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 d-flex flex-column justify-content-center">
+                    <h2 class="text-success">For Healthcare Professionals</h2>
+                    <p>Join our network of medical professionals and contribute to improving healthcare outcomes.</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Add new diseases and symptoms</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Update medication recommendations</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Contribute to our ML model</li>
+                        <li><i class="bi bi-check-circle-fill text-success"></i> Help improve diagnosis accuracy</li>
+                    </ul>
+                    <a href="{{ url_for('doctor_signup') }}" class="btn btn-success align-self-start">Join as Doctor</a>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="{{ url_for('static', filename='assets/doctor.webp') }}" alt="Doctor Portal" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="container py-5">
+        <h2 class="text-center text-success mb-5">How It Works</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success mb-3">1</div>
+                        <h5 class="card-title">Enter Symptoms</h5>
+                        <p class="card-text">Input your symptoms using our user-friendly interface</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success mb-3">2</div>
+                        <h5 class="card-title">AI Analysis</h5>
+                        <p class="card-text">Our AI model analyzes your symptoms for accurate diagnosis</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="display-4 text-success mb-3">3</div>
+                        <h5 class="card-title">Get Recommendations</h5>
+                        <p class="card-text">Receive personalized medication and lifestyle recommendations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+    <footer class="text-center py-3 bg-light">
         <p class="text-dark">&copy; 2024 InstaMed | Designed for Your Health</p>
     </footer>
     
