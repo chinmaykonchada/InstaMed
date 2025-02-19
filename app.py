@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime
-from models import Doctor, NewDisease, db, User
+from models import Admin, Doctor, NewDisease, db, User
 from config import Config
 from flask import jsonify
 from ml_model import DiseasePredictor
@@ -27,14 +27,19 @@ disease_predictor = DiseasePredictor()
 
 @login_manager.user_loader
 def load_user(user_id):
-    # Try to load user first
-    user = User.query.get(int(user_id))
-    if user:
-        return user
-    
-    # If not found, try to load doctor
+    # Check if user is an admin
+    admin = Admin.query.get(int(user_id))
+    if admin:
+        return admin
+
+    # Check if user is a doctor
     doctor = Doctor.query.get(int(user_id))
-    return doctor
+    if doctor:
+        return doctor
+
+    # Check if user is a regular user
+    return User.query.get(int(user_id))
+
 
 @app.route('/')
 def index():
@@ -339,6 +344,205 @@ def doctor_logout():
     flash('You have been logged out successfully.')
     return redirect(url_for('doctor_login'))
 
+# Add these imports at the top of your app.py
+from flask_login import login_user, logout_user, login_required, current_user
+from functools import wraps
+
+# Add this decorator for admin authentication
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not isinstance(current_user, Admin):
+            flash('Please log in as an admin to access this page.')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Update or add these routes
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if current_user.is_authenticated and isinstance(current_user, Admin):
+        return redirect(url_for('admin_dashboard'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        admin = Admin.query.filter_by(username=username).first()
+        
+        if admin and admin.check_password(password):
+            login_user(admin)
+            flash('Logged in successfully.', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid username or password', 'error')
+            
+    return render_template('admin/login.html')
+
+@app.route('/admin/signup', methods=['GET', 'POST'])
+def admin_signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if Admin.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+            return redirect(url_for('admin_signup'))
+            
+        if Admin.query.filter_by(email=email).first():
+            flash('Email already exists', 'error')
+            return redirect(url_for('admin_signup'))
+            
+        admin = Admin(
+            username=username,
+            email=email
+        )
+        admin.set_password(password)
+        
+        try:
+            db.session.add(admin)
+            db.session.commit()
+            flash('Admin account created successfully!', 'success')
+            return redirect(url_for('admin_login'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred during registration', 'error')
+            print(f"Error: {str(e)}")
+            
+    return render_template('admin/signup.html')
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    # Add your dashboard logic here
+    return render_template('admin/dashboard.html')
+
+@app.route('/admin/logout')
+@login_required
+def admin_logout():
+    logout_user()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('admin_login'))
+@app.route('/admin/verify-doctor/<int:doctor_id>/<action>')
+@admin_required
+def verify_doctor(doctor_id, action):
+    doctor = Doctor.query.get_or_404(doctor_id)
+    
+    if action == 'approve':
+        doctor.is_verified = True
+        db.session.commit()
+        # Send email notification to doctor
+        flash(f'Doctor {doctor.full_name} has been verified.')
+    elif action == 'reject':
+        db.session.delete(doctor)
+        db.session.commit()
+        flash(f'Doctor {doctor.full_name} has been rejected.')
+        
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/review-disease/<int:disease_id>/<action>')
+@admin_required
+def review_disease(disease_id, action):
+    disease = NewDisease.query.get_or_404(disease_id)
+    
+    if action == 'approve':
+        disease.status = 'approved'
+        # Here you would add code to update your ML model and datasets
+        update_ml_model_with_new_disease(disease)
+        flash(f'Disease {disease.name} has been approved and added to the system.')
+    elif action == 'reject':
+        disease.status = 'rejected'
+        flash(f'Disease {disease.name} has been rejected.')
+    
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
+def update_ml_model_with_new_disease(disease):
+    """Update the ML model with new disease data"""
+    try:
+        # Load existing datasets
+        symptoms_df = pd.read_csv("dataset/Training.csv")
+        desc_df = pd.read_csv("dataset/description.csv")
+        medications_df = pd.read_csv("dataset/medications.csv")
+        precautions_df = pd.read_csv("dataset/precautions_df.csv")
+        diets_df = pd.read_csv("dataset/diets.csv")
+        
+        # Add new disease to each dataset
+        # Add to symptoms dataset (create new row with binary values)
+        symptoms_list = disease.symptoms.split(',')
+        new_symptom_row = {symptom: 1 for symptom in symptoms_list}
+        new_symptom_row['prognosis'] = disease.name
+        symptoms_df = symptoms_df.append(new_symptom_row, ignore_index=True)
+        
+        # Add to description dataset
+        desc_df = desc_df.append({
+            'Disease': disease.name,
+            'Description': disease.description
+        }, ignore_index=True)
+        
+        # Add to medications dataset
+        medications_df = medications_df.append({
+            'Disease': disease.name,
+            'Medication': disease.medications
+        }, ignore_index=True)
+        
+        # Add to precautions dataset
+        precautions_list = disease.precautions.split(',')
+        precautions_df = precautions_df.append({
+            'Disease': disease.name,
+            'Precaution_1': precautions_list[0] if len(precautions_list) > 0 else '',
+            'Precaution_2': precautions_list[1] if len(precautions_list) > 1 else '',
+            'Precaution_3': precautions_list[2] if len(precautions_list) > 2 else '',
+            'Precaution_4': precautions_list[3] if len(precautions_list) > 3 else ''
+        }, ignore_index=True)
+        
+        # Add to diets dataset
+        diets_df = diets_df.append({
+            'Disease': disease.name,
+            'Diet': disease.diet
+        }, ignore_index=True)
+        
+        # Save updated datasets
+        symptoms_df.to_csv("dataset/Training.csv", index=False)
+        desc_df.to_csv("dataset/description.csv", index=False)
+        medications_df.to_csv("dataset/medications.csv", index=False)
+        precautions_df.to_csv("dataset/precautions_df.csv", index=False)
+        diets_df.to_csv("dataset/diets.csv", index=False)
+        
+        # Retrain the model
+        retrain_model()
+        
+    except Exception as e:
+        print(f"Error updating ML model: {str(e)}")
+        raise
+
+def retrain_model():
+    """Retrain the ML model with updated data"""
+    try:
+        # Load the updated training data
+        data = pd.read_csv("dataset/Training.csv")
+        
+        # Preprocess the data
+        le = LabelEncoder()
+        y = le.fit_transform(data['prognosis'])
+        X = data.drop(['prognosis'], axis=1)
+        
+        # Split the data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        
+        # Train the model
+        model = SVC(kernel='linear')
+        model.fit(X_train, y_train)
+        
+        # Save the updated model
+        with open('SVC.pkl', 'wb') as f:
+            pickle.dump(model, f)
+            
+    except Exception as e:
+        print(f"Error retraining model: {str(e)}")
+        raise
+    
 # if __name__ == '__main__':
 #     with app.app_context():
 #         db.create_all()
