@@ -415,8 +415,15 @@ def admin_signup():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    # Add your dashboard logic here
-    return render_template('admin/dashboard.html')
+    # Fetch pending doctor verifications
+    pending_doctors = Doctor.query.filter_by(is_verified=False).all()
+    
+    # Fetch pending disease reviews
+    pending_diseases = NewDisease.query.filter_by(status='pending').all()
+    
+    return render_template('admin/dashboard.html', 
+                          pending_doctors=pending_doctors,
+                          pending_diseases=pending_diseases)
 
 @app.route('/admin/logout')
 @login_required
@@ -473,35 +480,36 @@ def update_ml_model_with_new_disease(disease):
         symptoms_list = disease.symptoms.split(',')
         new_symptom_row = {symptom: 1 for symptom in symptoms_list}
         new_symptom_row['prognosis'] = disease.name
-        symptoms_df = symptoms_df.append(new_symptom_row, ignore_index=True)
+        # Use pd.concat instead of append (which is deprecated)
+        symptoms_df = pd.concat([symptoms_df, pd.DataFrame([new_symptom_row])], ignore_index=True)
         
         # Add to description dataset
-        desc_df = desc_df.append({
+        desc_df = pd.concat([desc_df, pd.DataFrame([{
             'Disease': disease.name,
             'Description': disease.description
-        }, ignore_index=True)
+        }])], ignore_index=True)
         
         # Add to medications dataset
-        medications_df = medications_df.append({
+        medications_df = pd.concat([medications_df, pd.DataFrame([{
             'Disease': disease.name,
             'Medication': disease.medications
-        }, ignore_index=True)
+        }])], ignore_index=True)
         
         # Add to precautions dataset
         precautions_list = disease.precautions.split(',')
-        precautions_df = precautions_df.append({
+        precautions_df = pd.concat([precautions_df, pd.DataFrame([{
             'Disease': disease.name,
             'Precaution_1': precautions_list[0] if len(precautions_list) > 0 else '',
             'Precaution_2': precautions_list[1] if len(precautions_list) > 1 else '',
             'Precaution_3': precautions_list[2] if len(precautions_list) > 2 else '',
             'Precaution_4': precautions_list[3] if len(precautions_list) > 3 else ''
-        }, ignore_index=True)
+        }])], ignore_index=True)
         
         # Add to diets dataset
-        diets_df = diets_df.append({
+        diets_df = pd.concat([diets_df, pd.DataFrame([{
             'Disease': disease.name,
             'Diet': disease.diet
-        }, ignore_index=True)
+        }])], ignore_index=True)
         
         # Save updated datasets
         symptoms_df.to_csv("dataset/Training.csv", index=False)
@@ -516,7 +524,7 @@ def update_ml_model_with_new_disease(disease):
     except Exception as e:
         print(f"Error updating ML model: {str(e)}")
         raise
-
+    
 def retrain_model():
     """Retrain the ML model with updated data"""
     try:

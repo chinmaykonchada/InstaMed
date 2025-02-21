@@ -1,10 +1,10 @@
-<!-- templates/doctor/add_disease.html -->
+<!-- templates/doctor/edit_disease.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Disease - InstaMed</title>
+    <title>Edit Disease - InstaMed</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
@@ -35,40 +35,42 @@
 
         <div class="card">
             <div class="card-header bg-dark text-white">
-                <h4 class="mb-0">Add New Disease Information</h4>
+                <h4 class="mb-0">Edit Disease: {{ disease.name }}</h4>
             </div>
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
                         <label for="name" class="form-label">Disease Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                        <input type="text" class="form-control" id="name" name="name" required value="{{ disease.name }}">
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                        <textarea class="form-control" id="description" name="description" rows="3" required>{{ disease.description }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="symptoms" class="form-label">Symptoms (comma-separated)</label>
-                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" required
-                            placeholder="Example: fever,headache,nausea,muscle pain"></textarea>
+                        <textarea class="form-control" id="symptoms" name="symptoms" rows="3" required>{{ disease.symptoms }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="medications" class="form-label">Recommended Medications</label>
-                        <textarea class="form-control" id="medications" name="medications" rows="3" required></textarea>
+                        <textarea class="form-control" id="medications" name="medications" rows="3" required>{{ disease.medications }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="precautions" class="form-label">Precautions (comma-separated)</label>
-                        <textarea class="form-control" id="precautions" name="precautions" rows="3" required></textarea>
+                        <textarea class="form-control" id="precautions" name="precautions" rows="3" required>{{ disease.precautions }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="diet" class="form-label">Recommended Diet</label>
-                        <textarea class="form-control" id="diet" name="diet" rows="3"></textarea>
+                        <textarea class="form-control" id="diet" name="diet" rows="3">{{ disease.diet }}</textarea>
                     </div>
                     <div class="mb-3">
                         <label for="workout" class="form-label">Recommended Exercise/Workout</label>
-                        <textarea class="form-control" id="workout" name="workout" rows="3"></textarea>
+                        <textarea class="form-control" id="workout" name="workout" rows="3">{{ disease.workout }}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('view_disease', disease_id=disease.id) }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -61,13 +61,14 @@ class NewDisease(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    symptoms = db.Column(db.Text, nullable=False)  # Stored as comma-separated values
+    symptoms = db.Column(db.Text, nullable=False)
     medications = db.Column(db.Text, nullable=False)
     precautions = db.Column(db.Text, nullable=False)
     diet = db.Column(db.Text)
     workout = db.Column(db.Text)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    doctor = db.relationship('Doctor', backref='submitted_diseases')  # Add this line
+    status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Admin(UserMixin, db.Model):
