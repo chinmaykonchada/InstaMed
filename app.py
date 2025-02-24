@@ -146,14 +146,24 @@ def predict():
         try:
             # Clean symptoms
             symptoms = [s.strip().lower().replace(' ', '_') for s in symptoms if s.strip()]
+            
+            # Get prediction and render template
             result = disease_predictor.process_symptoms(symptoms)
+            
+            # Only return error response if there's actually an error
+            if isinstance(result, dict) and 'error' in result:
+                return jsonify(result), 500
+                
             return render_template(
                 'prediction.html',
                 result=result
             )
+            
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
+            # Log the error for debugging
+            print(f"Prediction error: {str(e)}")
+            return jsonify({'error': 'An error occurred during prediction. Please try again.'}), 500
+            
 # Add these routes to app.py
 # Doctor
 from flask import flash, redirect, url_for, request, render_template
