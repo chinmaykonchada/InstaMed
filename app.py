@@ -14,6 +14,7 @@ import pickle
 from sklearn.svm import SVC
 
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -28,7 +29,7 @@ disease_predictor = DiseasePredictor()
 @login_manager.user_loader
 def load_user(user_id):
     # Check if user is an admin
-    admin = Admin.query.get(int(user_id))
+    admin = db.session.get(Admin, int(user_id))
     if admin:
         return admin
 
@@ -278,15 +279,19 @@ def retrain_model():
         # Get all approved diseases
         approved_diseases = NewDisease.query.filter_by(status='approved').all()
         
-        # Update the training data with new diseases
-        update_training_data(approved_diseases)
-        
-        # Retrain the model
-        retrain_ml_model()
-        
-        flash('Model retrained successfully with new disease data!')
+        # Update the training data
+        if update_training_data(approved_diseases):
+            # Validate the data
+            if validate_training_data():
+                # Retrain the model
+                retrain_ml_model()
+                flash('Model retrained successfully with new disease data!')
+            else:
+                flash('Error validating training data.')
+        else:
+            flash('Error updating training data.')
     except Exception as e:
-        flash('Error retraining model. Please try again later.')
+        flash(f'Error retraining model: {str(e)}')
     
     return redirect(url_for('doctor_dashboard'))
 
@@ -294,42 +299,127 @@ def update_training_data(new_diseases):
     """
     Update the training dataset with new disease information
     """
-    # Load existing training data
-    data = pd.read_csv("dataset/Training.csv")
+    try:
+        # Load existing training data
+        data = pd.read_csv("dataset/Training.csv")
+        
+        # Create list of all symptom columns (excluding special columns)
+        symptom_columns = [col for col in data.columns if col not in ['prognosis', 'a', 'test1', 'test3']]
+        
+        new_rows = []
+        for disease in new_diseases:
+            # Initialize all symptoms to 0
+            new_row = dict.fromkeys(data.columns, 0)
+            
+            # Set symptoms from disease to 1
+            symptoms_list = [s.strip().lower().replace(' ', '_') for s in disease.symptoms.split(',')]
+            for symptom in symptoms_list:
+                if symptom in symptom_columns:
+                    new_row[symptom] = 1.0  # Use 1.0 for consistency
+            
+            # Set disease name
+            new_row['prognosis'] = disease.name
+            
+            new_rows.append(new_row)
+        
+        # Convert new rows to DataFrame
+        new_data = pd.DataFrame(new_rows)
+        
+        # Ensure all columns match original data
+        new_data = new_data[data.columns]
+        
+        # Concatenate and fill any remaining NaN with 0
+        data = pd.concat([data, new_data], ignore_index=True)
+        data = data.fillna(0)
+        
+        # Convert all numeric columns to float
+        for col in data.columns:
+            if col != 'prognosis':
+                data[col] = data[col].astype(float)
+        
+        # Save the cleaned dataset
+        data.to_csv("dataset/Training.csv", index=False)
+        print(f"Successfully added {len(new_diseases)} new disease entries to training data")
+        return True
+        
+    except Exception as e:
+        print(f"Error updating training data: {str(e)}")
+        return False
     
-    # Process new diseases and add to training data
-    for disease in new_diseases:
-        symptoms_list = disease.symptoms.split(',')
-        # Create new row with symptoms
-        new_row = {symptom: 1 for symptom in symptoms_list}
-        # Add disease name
-        new_row['prognosis'] = disease.name
-        # Add row to dataset
-        data = data.append(new_row, ignore_index=True)
-    
-    # Save updated dataset
-    data.to_csv("dataset/Training.csv", index=False)
+def validate_training_data():
+    """
+    Validate the training data format and content
+    """
+    try:
+        data = pd.read_csv("dataset/Training.csv")
+        
+        # Check for empty columns
+        empty_cols = data.columns[data.isna().all()].tolist()
+        if empty_cols:
+            print(f"Warning: Found completely empty columns: {empty_cols}")
+        
+        # Check for rows with all zeros
+        zero_rows = (data.select_dtypes(include=[np.number]) == 0).all(axis=1).sum()
+        if zero_rows > 0:
+            print(f"Warning: Found {zero_rows} rows with all zeros")
+        
+        # Verify data types
+        for col in data.columns:
+            if col != 'prognosis':
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+        
+        # Save cleaned data
+        data.to_csv("dataset/Training.csv", index=False)
+        print("Training data validated and cleaned")
+        
+        return True
+    except Exception as e:
+        print(f"Error validating training data: {str(e)}")
+        return False
+
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 
 def retrain_ml_model():
     """
     Retrain the ML model with updated dataset
     """
-    # Load and preprocess data
-    data = pd.read_csv("dataset/Training.csv")
-    le = LabelEncoder()
-    y = le.fit_transform(data['prognosis'])
-    x = data.drop(['prognosis'], axis=1)
-    
-    # Split data
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
-    
-    # Train model
-    model = SVC(kernel='linear')
-    model.fit(x_train, y_train)
-    
-    # Save model
-    with open('SVC.pkl', 'wb') as f:
-        pickle.dump(model, f)
+    try:
+        # Load data
+        data = pd.read_csv("dataset/Training.csv")
+        
+        # Clean data
+        for col in data.columns:
+            if col != 'prognosis':
+                # Convert to numeric and fill NaN with 0
+                data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0)
+        
+        # Encode labels
+        le = LabelEncoder()
+        y = le.fit_transform(data['prognosis'])
+        X = data.drop(['prognosis'], axis=1)
+        
+        # Create pipeline
+        pipeline = Pipeline([
+            ('imputer', SimpleImputer(strategy='constant', fill_value=0)),
+            ('scaler', StandardScaler()),
+            ('classifier', SVC(kernel='linear'))
+        ])
+        
+        # Split and train
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        pipeline.fit(X_train, y_train)
+        
+        # Save model
+        with open('SVC.pkl', 'wb') as f:
+            pickle.dump(pipeline, f)
+            
+        print("Model retrained successfully")
+        return True
+        
+    except Exception as e:
+        print(f"Error in retraining model: {str(e)}")
+        return False
 @app.route('/logout')
 @login_required
 def logout():
@@ -466,7 +556,7 @@ def review_disease(disease_id, action):
     return redirect(url_for('admin_dashboard'))
 
 def update_ml_model_with_new_disease(disease):
-    """Update the ML model with new disease data"""
+    """Update the ML model with new disease data, including handling new symptoms"""
     try:
         # Load existing datasets
         symptoms_df = pd.read_csv("dataset/Training.csv")
@@ -475,41 +565,75 @@ def update_ml_model_with_new_disease(disease):
         precautions_df = pd.read_csv("dataset/precautions_df.csv")
         diets_df = pd.read_csv("dataset/diets.csv")
         
-        # Add new disease to each dataset
-        # Add to symptoms dataset (create new row with binary values)
-        symptoms_list = disease.symptoms.split(',')
-        new_symptom_row = {symptom: 1 for symptom in symptoms_list}
+        # Get current symptoms (excluding 'prognosis')
+        existing_symptoms = [col for col in symptoms_df.columns if col != 'prognosis']
+        
+        # Process new symptoms list
+        new_symptoms_list = [s.strip() for s in disease.symptoms.split(',') if s.strip()]
+        
+        # Identify truly new symptoms (not in existing columns)
+        new_symptoms = [symptom for symptom in new_symptoms_list 
+                       if symptom not in existing_symptoms]
+        
+        # Add new symptom columns if any
+        for new_symptom in new_symptoms:
+            if new_symptom not in symptoms_df.columns:
+                symptoms_df[new_symptom] = 0  # Initialize with zeros for all existing rows
+                print(f"Added new symptom column: {new_symptom}")
+        
+        # Get updated list of all symptoms
+        all_symptoms = [col for col in symptoms_df.columns if col != 'prognosis']
+        
+        # Create new row with all symptoms initialized to 0
+        new_symptom_row = {symptom: 0 for symptom in all_symptoms}
+        
+        # Set 1 for present symptoms
+        for symptom in new_symptoms_list:
+            if symptom in new_symptom_row:
+                new_symptom_row[symptom] = 1
+            else:
+                print(f"Warning: Symptom '{symptom}' not found in symptoms list")
+        
+        # Add prognosis (disease name)
         new_symptom_row['prognosis'] = disease.name
-        # Use pd.concat instead of append (which is deprecated)
-        symptoms_df = pd.concat([symptoms_df, pd.DataFrame([new_symptom_row])], ignore_index=True)
         
-        # Add to description dataset
-        desc_df = pd.concat([desc_df, pd.DataFrame([{
-            'Disease': disease.name,
-            'Description': disease.description
-        }])], ignore_index=True)
+        # Add to symptoms dataset
+        new_row_df = pd.DataFrame([new_symptom_row])
+        # Ensure column order matches
+        new_row_df = new_row_df[symptoms_df.columns]
+        symptoms_df = pd.concat([symptoms_df, new_row_df], ignore_index=True)
         
-        # Add to medications dataset
-        medications_df = pd.concat([medications_df, pd.DataFrame([{
-            'Disease': disease.name,
-            'Medication': disease.medications
-        }])], ignore_index=True)
+        # Add to description dataset if not exists
+        if not desc_df['Disease'].str.contains(disease.name).any():
+            desc_df = pd.concat([desc_df, pd.DataFrame([{
+                'Disease': disease.name,
+                'Description': disease.description
+            }])], ignore_index=True)
         
-        # Add to precautions dataset
-        precautions_list = disease.precautions.split(',')
-        precautions_df = pd.concat([precautions_df, pd.DataFrame([{
-            'Disease': disease.name,
-            'Precaution_1': precautions_list[0] if len(precautions_list) > 0 else '',
-            'Precaution_2': precautions_list[1] if len(precautions_list) > 1 else '',
-            'Precaution_3': precautions_list[2] if len(precautions_list) > 2 else '',
-            'Precaution_4': precautions_list[3] if len(precautions_list) > 3 else ''
-        }])], ignore_index=True)
+        # Add to medications dataset if not exists
+        if not medications_df['Disease'].str.contains(disease.name).any():
+            medications_df = pd.concat([medications_df, pd.DataFrame([{
+                'Disease': disease.name,
+                'Medication': disease.medications
+            }])], ignore_index=True)
         
-        # Add to diets dataset
-        diets_df = pd.concat([diets_df, pd.DataFrame([{
-            'Disease': disease.name,
-            'Diet': disease.diet
-        }])], ignore_index=True)
+        # Add to precautions dataset if not exists
+        if not precautions_df['Disease'].str.contains(disease.name).any():
+            precautions_list = [p.strip() for p in disease.precautions.split(',') if p.strip()]
+            precautions_df = pd.concat([precautions_df, pd.DataFrame([{
+                'Disease': disease.name,
+                'Precaution_1': precautions_list[0] if len(precautions_list) > 0 else 'None',
+                'Precaution_2': precautions_list[1] if len(precautions_list) > 1 else 'None',
+                'Precaution_3': precautions_list[2] if len(precautions_list) > 2 else 'None',
+                'Precaution_4': precautions_list[3] if len(precautions_list) > 3 else 'None'
+            }])], ignore_index=True)
+        
+        # Add to diets dataset if not exists
+        if not diets_df['Disease'].str.contains(disease.name).any():
+            diets_df = pd.concat([diets_df, pd.DataFrame([{
+                'Disease': disease.name,
+                'Diet': disease.diet if disease.diet else 'No specific diet recommendations'
+            }])], ignore_index=True)
         
         # Save updated datasets
         symptoms_df.to_csv("dataset/Training.csv", index=False)
@@ -524,17 +648,24 @@ def update_ml_model_with_new_disease(disease):
     except Exception as e:
         print(f"Error updating ML model: {str(e)}")
         raise
-    
+
 def retrain_model():
     """Retrain the ML model with updated data"""
     try:
         # Load the updated training data
         data = pd.read_csv("dataset/Training.csv")
         
+        # Ensure no missing values
+        data = data.fillna(0)  # Fill NaN values with 0
+        
         # Preprocess the data
         le = LabelEncoder()
         y = le.fit_transform(data['prognosis'])
         X = data.drop(['prognosis'], axis=1)
+        
+        # Handle any remaining missing values
+        imputer = SimpleImputer(strategy='constant', fill_value=0)
+        X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
         
         # Split the data
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -543,18 +674,44 @@ def retrain_model():
         model = SVC(kernel='linear')
         model.fit(X_train, y_train)
         
-        # Save the updated model
+        # Save the updated model and label encoder
         with open('SVC.pkl', 'wb') as f:
             pickle.dump(model, f)
+        with open('label_encoder.pkl', 'wb') as f:
+            pickle.dump(le, f)
             
     except Exception as e:
         print(f"Error retraining model: {str(e)}")
         raise
+
+def get_all_symptoms():
+    """Helper function to get list of all symptoms from the training data"""
+    try:
+        symptoms_df = pd.read_csv("dataset/Training.csv")
+        return [col for col in symptoms_df.columns if col != 'prognosis']
+    except Exception as e:
+        print(f"Error getting symptoms list: {str(e)}")
+        return []
     
-# if __name__ == '__main__':
-#     with app.app_context():
-#         db.create_all()
-#     app.run(debug=True)
+def validate_new_symptom(symptom):
+    """Validate a new symptom before adding it to the dataset"""
+    # Remove leading/trailing whitespace
+    symptom = symptom.strip()
+    
+    # Check if symptom name is not empty
+    if not symptom:
+        return False, "Symptom name cannot be empty"
+    
+    # Check if symptom name contains only valid characters
+    if not symptom.replace(' ', '_').replace('-', '_').isalnum():
+        return False, "Symptom name can only contain letters, numbers, spaces, and hyphens"
+    
+    # Check length
+    if len(symptom) > 50:
+        return False, "Symptom name is too long (max 50 characters)"
+    
+    return True, "Valid symptom name"
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
+
 class DiseasePredictor:
     def __init__(self):
         # Load the model and necessary data
