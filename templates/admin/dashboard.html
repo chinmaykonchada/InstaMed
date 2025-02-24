@@ -8,16 +8,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-light bg-success">
         <div class="container">
-            <a class="navbar-brand" href="#">InstaMed Admin</a>
+            <a class="navbar-brand text-white" href="#">InstaMed Admin</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        <a class="nav-link text-white" href="{{ url_for('logout') }}">Logout</a>
                     </li>
                 </ul>
             </div>
@@ -37,7 +37,7 @@
             <!-- Pending Doctor Verifications -->
             <div class="col-md-6 mb-4">
                 <div class="card">
-                    <div class="card-header bg-dark text-white">
+                    <div class="card-header bg-success text-white">
                         <h4 class="mb-0">Pending Doctor Verifications</h4>
                     </div>
                     <div class="card-body">
@@ -66,7 +66,7 @@
             <!-- Pending Disease Reviews -->
             <div class="col-md-6 mb-4">
                 <div class="card">
-                    <div class="card-header bg-dark text-white">
+                    <div class="card-header bg-success text-white">
                         <h4 class="mb-0">Pending Disease Reviews</h4>
                     </div>
                     <div class="card-body">

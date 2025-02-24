@@ -1,16 +1,22 @@
 body {
     font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 .btn-success {
     /* background-color: #00AB33; */
     border: none;
 }
 .btn-success:hover {
-    /* background-color: #008B28; */
+    background-color: #008B28;
 }
 footer {
     background-color: #9ccbb5;
     color: white;
+    text-align: center;
+    padding: 10px;
+    margin-top: auto;
 }
 .navbar{
     background-color: #9ccbb5;
@@ -19,6 +25,10 @@ footer {
     background-color: #9ccbb5;
 }
 
+/* Main content wrapper to push footer to bottom */
+.main-content {
+    flex: 1;
+}
 
 /* SignUp */
 .signup-container {
@@ -39,4 +49,4 @@ footer {
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 30px;
-  }
+}

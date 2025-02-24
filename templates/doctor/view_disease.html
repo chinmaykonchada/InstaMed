@@ -8,9 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-light bg-success">
         <div class="container">
-            <a class="navbar-brand" href="#">InstaMed Doctor Portal</a>
+            <a class="navbar-brand text-white" href="#">InstaMed Doctor Portal</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
@@ -34,7 +34,7 @@
         {% endwith %}
 
         <div class="card">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">{{ disease.name }}</h4>
                 <span class="badge bg-{{ 'success' if disease.status == 'approved' else 'warning' if disease.status == 'pending' else 'danger' }}">
                     {{ disease.status.title() }}
