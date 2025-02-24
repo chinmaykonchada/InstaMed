@@ -121,10 +121,19 @@ def login():
         
     return render_template('login.html')
 
+# app.py routes
+
 @app.route('/symptoms')
 @login_required
 def symptoms():
-    return render_template('symptoms.html')
+    all_symptoms = disease_predictor.get_all_symptoms()
+    return render_template('symptoms.html', symptoms=all_symptoms)
+
+@app.route('/get_symptoms')
+def get_symptoms():
+    """API endpoint to get all symptoms"""
+    all_symptoms = disease_predictor.get_all_symptoms()
+    return jsonify(all_symptoms)
 
 @app.route('/predict', methods=['POST'])
 @login_required
@@ -135,6 +144,8 @@ def predict():
             return jsonify({'error': 'No symptoms provided'}), 400
         
         try:
+            # Clean symptoms
+            symptoms = [s.strip().lower().replace(' ', '_') for s in symptoms if s.strip()]
             result = disease_predictor.process_symptoms(symptoms)
             return render_template(
                 'prediction.html',
