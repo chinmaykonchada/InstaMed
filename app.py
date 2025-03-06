@@ -236,23 +236,35 @@ def doctor_dashboard():
 def add_disease():
     if request.method == 'POST':
         try:
+            # Get symptoms from the form
+            symptoms = request.form.get('symptoms')
+            
+            # Process symptoms: convert to lowercase and replace spaces with underscores
+            symptoms = symptoms.strip().lower().replace(' ', '_')
+            
+            # Create new disease entry
             disease = NewDisease(
                 name=request.form.get('name'),
                 description=request.form.get('description'),
-                symptoms=request.form.get('symptoms'),
+                symptoms=symptoms,  # Use the processed symptoms string
                 medications=request.form.get('medications'),
                 precautions=request.form.get('precautions'),
                 diet=request.form.get('diet'),
                 workout=request.form.get('workout'),
                 doctor_id=current_user.id
             )
+            
+            # Add to database
             db.session.add(disease)
             db.session.commit()
+            
             flash('Disease information submitted successfully!')
             return redirect(url_for('doctor_dashboard'))
+            
         except Exception as e:
             db.session.rollback()
             flash('Error submitting disease information.')
+            print(f"Error: {str(e)}")  # For debugging
     
     return render_template('doctor/add_disease.html')
 # Add these routes to app.py
